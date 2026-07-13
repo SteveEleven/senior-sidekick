@@ -28,5 +28,5 @@ export function composeHandoffSummaryOffline({
     ? triedSteps.map((step, index) => `${index + 1}. ${step.instruction} (${step.answer === "yes" ? "said it worked" : "did not work"})`).join("\n")
     : "No troubleshooting steps were completed.";
 
-  return `SeniorSidekick help summary\n\nProblem: ${problemDescription || treeTitle}\n\nSteps tried:\n${tried}\n\nThey would appreciate your help with the next step.`;
+  return `SeniorSidekick help summary\n\nProblem: ${problemDescription || treeTitle}\n\nSteps tried:\n${tried}\n\nThey would appreciate your help with the next step.\n\nReminder: only share this with someone you know and trust. Real helpers never ask for passwords or payment.`;
 }

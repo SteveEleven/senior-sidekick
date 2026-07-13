@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { getTreeById, type DecisionStep, type DecisionTree } from "@/lib/decision-trees";
 import { composeHandoffSummaryOffline, routeIntentOffline, type TriedStep } from "@/lib/demo-services";
 
-type Screen = "welcome" | "step" | "success" | "handoff";
+type Screen = "welcome" | "other-problem" | "step" | "success" | "handoff";
 
 function speak(text: string) {
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -28,7 +28,15 @@ export function SeniorSidekick() {
 
   function start() {
     const result = routeIntentOffline(description);
-    const selected = result.treeId === "other" ? getTreeById("tv-no-sound") : getTreeById(result.treeId);
+    if (result.treeId === "other") {
+      setTree(undefined);
+      setStepId("");
+      setTriedSteps([]);
+      setScreen("other-problem");
+      return;
+    }
+
+    const selected = getTreeById(result.treeId);
     if (!selected) return;
     setTree(selected);
     setStepId(selected.steps[0].id);
@@ -115,6 +123,13 @@ export function SeniorSidekick() {
           </div>
         )}
 
+        {screen === "other-problem" && (
+          <div className="text-center">
+            <h2 className="text-4xl font-bold leading-tight text-navy">I don&apos;t have a verified step for that yet — let&apos;s make it easy to ask your helper.</h2>
+            <button type="button" onClick={() => setScreen("handoff")} className="mt-8 min-h-20 w-full rounded-2xl bg-calm px-6 text-3xl font-bold text-white hover:bg-[#105e86]">Ask my helper</button>
+          </div>
+        )}
+
         {screen === "step" && step && (
           <div>
             <p className="text-lg font-semibold text-calm">Helping with: {tree?.title}</p>
@@ -134,6 +149,7 @@ export function SeniorSidekick() {
               <button type="button" onClick={() => goTo(step.nextOnYes, [...triedSteps, { instruction: step.instruction }])} className="mt-7 min-h-20 w-full rounded-2xl bg-calm px-6 text-3xl font-bold text-white">I did that</button>
             )}
             <button type="button" onClick={requestHelp} className="mt-7 w-full rounded-xl px-5 py-4 text-xl font-bold text-calm underline hover:text-navy">I need help from someone I trust</button>
+            <button type="button" onClick={startOver} className="mt-1 w-full rounded-xl px-5 py-4 text-xl font-bold text-calm underline hover:text-navy">Start over</button>
           </div>
         )}
 
