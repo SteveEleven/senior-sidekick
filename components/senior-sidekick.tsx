@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getTreeById, type DecisionStep, type DecisionTree } from "@/lib/decision-trees";
-import { composeHandoffSummaryOffline, routeIntentOffline, type TriedStep } from "@/lib/demo-services";
+import {
+  composeHandoffSummaryLive,
+  composeHandoffSummaryOffline,
+  isLiveGpt56Enabled,
+  routeIntentLive,
+  routeIntentOffline,
+  type IntentResult,
+  type TriedStep,
+} from "@/lib/demo-services";
 
 type Screen = "welcome" | "other-problem" | "step" | "success" | "handoff";
 
@@ -20,14 +28,14 @@ export function SeniorSidekick() {
   const [stepId, setStepId] = useState<string>("");
   const [triedSteps, setTriedSteps] = useState<TriedStep[]>([]);
   const [copied, setCopied] = useState(false);
+  const [liveSummary, setLiveSummary] = useState<string | null>(null);
 
   const step = useMemo(
     () => tree?.steps.find((item) => item.id === stepId),
     [tree, stepId],
   );
 
-  function start() {
-    const result = routeIntentOffline(description);
+  function startWithResult(result: IntentResult) {
     if (result.treeId === "other") {
       setTree(undefined);
       setStepId("");
@@ -42,6 +50,18 @@ export function SeniorSidekick() {
     setStepId(selected.steps[0].id);
     setTriedSteps([]);
     setScreen("step");
+  }
+
+  function start() {
+    const offlineResult = routeIntentOffline(description);
+    if (!isLiveGpt56Enabled()) {
+      startWithResult(offlineResult);
+      return;
+    }
+
+    void routeIntentLive(description)
+      .then(startWithResult)
+      .catch(() => startWithResult(offlineResult));
   }
 
   function goTo(action: string | undefined, nextTried: TriedStep[]) {
@@ -70,11 +90,30 @@ export function SeniorSidekick() {
     setScreen("handoff");
   }
 
-  const summary = composeHandoffSummaryOffline({
+  const offlineSummary = composeHandoffSummaryOffline({
     problemDescription: description,
     treeTitle: tree?.title ?? "Technical problem",
     triedSteps,
   });
+  const summary = liveSummary ?? offlineSummary;
+
+  useEffect(() => {
+    if (screen !== "handoff" || !isLiveGpt56Enabled()) return;
+
+    let cancelled = false;
+    setLiveSummary(null);
+    void composeHandoffSummaryLive(offlineSummary)
+      .then((composed) => {
+        if (!cancelled) setLiveSummary(composed);
+      })
+      .catch(() => {
+        // Keep the deterministic offline summary on every runtime failure.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [offlineSummary, screen]);
 
   async function shareSummary() {
     if (navigator.share) {
@@ -98,6 +137,7 @@ export function SeniorSidekick() {
     setTree(undefined);
     setStepId("");
     setTriedSteps([]);
+    setLiveSummary(null);
     setScreen("welcome");
   }
 

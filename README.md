@@ -48,6 +48,10 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). No environment variables required for demo mode.
 
+### Optional local GPT-5.6 test mode
+
+The deployed app stays in deterministic demo mode. To test the two live seams locally only, copy `.env.example` to `.env.local`, set `NEXT_PUBLIC_LIVE_GPT_56=true`, and add a server-side `OPENAI_API_KEY`. The live model may route an intent or polish a handoff summary; all troubleshooting steps remain in the human-verified decision tree. If the flag, key, or API call is unavailable, the app silently uses its existing offline behavior.
+
 ## Edit the troubleshooting tree
 
 Change steps in `lib/decision-trees.ts`. Intent routing and handoff summary live in `lib/demo-services.ts` (offline stubs + GPT-5.6 seams).
