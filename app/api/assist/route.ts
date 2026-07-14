@@ -79,10 +79,11 @@ export async function POST(request: Request) {
 
     if (body.action === "compose-handoff" && typeof body.offlineSummary === "string") {
       const summary = await createResponse({
-        instructions: "Rewrite the supplied trusted-helper handoff note to be concise, clear, and warm. Preserve its facts and safety reminder. Do not add, recommend, change, or invent troubleshooting steps. Return only the ready-to-share note.",
+        instructions: "Rewrite the supplied trusted-helper handoff note to be concise, clear, and warm. Preserve its facts and safety reminder. Only restate steps and outcomes that appear in the supplied note; do not add, infer, or state any step result, action, or outcome that is not explicitly present in the input; if a step has no recorded answer, do not describe what happened on it. Do not add, recommend, change, or invent troubleshooting steps. Return only the ready-to-share note. End with this exact final line: \"Real helpers never ask for passwords or payment.\"",
         input: body.offlineSummary,
       });
       if (!summary.trim()) throw new Error("Empty summary");
+      if (!summary.includes("passwords or payment")) throw new Error("Missing safety reminder");
       return NextResponse.json({ summary });
     }
 
